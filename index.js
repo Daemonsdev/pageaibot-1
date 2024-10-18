@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const request = require('request');
 const app = express();
 
-const PAGE_ACCESS_TOKEN = 'YOUR_PAGE_ACCESS_TOKEN';
+const PAGE_ACCESS_TOKEN = 'EAAPGwu9YtzoBO1UC6MxD3K32WbA25TCd5M6VBVJm4GbqzM2MZAVRxTxZAVJm0yWHZCExKsgMM76ijSZBJVRIYouEvF4eigxZAzBcfJ2qkRMKDuVWsKwfREA6pUERpNoQkIbmt4hI6NZCuyyuqB4lcrvMtQolQWclhGuTxqilh9Vgzg9Tp9FpVo6l4k4mnAQWhZCTgZDZD';
 const VERIFY_TOKEN = 'pageai';
 
 app.use(bodyParser.json());
