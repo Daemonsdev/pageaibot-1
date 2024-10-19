@@ -1,6 +1,9 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 
 const PAGE_ACCESS_TOKEN = 'EAAPGwu9YtzoBO1UC6MxD3K32WbA25TCd5M6VBVJm4GbqzM2MZAVRxTxZAVJm0yWHZCExKsgMM76ijSZBJVRIYouEvF4eigxZAzBcfJ2qkRMKDuVWsKwfREA6pUERpNoQkIbmt4hI6NZCuyyuqB4lcrvMtQolQWclhGuTxqilh9Vgzg9Tp9FpVo6l4k4mnAQWhZCTgZDZD';
@@ -8,7 +11,15 @@ const VERIFY_TOKEN = 'pageai';
 
 app.use(bodyParser.json());
 
-// Verify the webhook
+// Dynamically load all command modules
+let commands = {};
+const commandsPath = path.join(__dirname, 'commands');
+
+fs.readdirSync(commandsPath).forEach(file => {
+    const command = require(path.join(commandsPath, file));
+    commands[command.name] = command;
+});
+
 app.get('/webhook', (req, res) => {
     let mode = req.query['hub.mode'];
     let token = req.query['hub.verify_token'];
@@ -23,7 +34,6 @@ app.get('/webhook', (req, res) => {
     }
 });
 
-// Handle messages and postbacks
 app.post('/webhook', (req, res) => {
     let body = req.body;
 
@@ -45,52 +55,24 @@ app.post('/webhook', (req, res) => {
     }
 });
 
-// Verify if the user has roles in the app
 function verifyUserRole(sender_psid, callback) {
-    // Implement your own logic to verify user roles
-    // For demonstration purposes, let's assume all users have roles
     callback();
 }
 
-function handleMessage(sender_psid, received_message) {
+async function handleMessage(sender_psid, received_message) {
     let response;
 
     if (received_message.text) {
         let messageText = received_message.text.toLowerCase();
-        if (messageText === 'hi' || messageText === 'hello') {
-            response = { "text": "Hello! How can I assist you today?" };
-        } else if (messageText === 'help') {
-            response = { "text": "Here are some commands you can use: hi, hello, help." };
-        } else {
-            response = { "text": `You sent the message: "${received_message.text}". Now send me an image!` };
-        }
+
+        // Check if the message matches a help command
+        response = commands['help'].execute(messageText);
     } else if (received_message.attachments) {
         let attachment_url = received_message.attachments[0].payload.url;
-        response = {
-            "attachment": {
-                "type": "template",
-                "payload": {
-                    "template_type": "generic",
-                    "elements": [{
-                        "title": "Is this the right picture?",
-                        "subtitle": "Tap a button to answer.",
-                        "image_url": attachment_url,
-                        "buttons": [
-                            {
-                                "type": "postback",
-                                "title": "Yes!",
-                                "payload": "yes",
-                            },
-                            {
-                                "type": "postback",
-                                "title": "No!",
-                                "payload": "no",
-                            }
-                        ],
-                    }]
-                }
-            }
-        };
+
+        // Use AI to describe the attachment
+        const aiDescription = await commands['ai'].execute(`Describe this image: ${attachment_url}`);
+        response = { "text": `AI's description of the image: ${aiDescription}` };
     }
 
     callSendAPI(sender_psid, response);
